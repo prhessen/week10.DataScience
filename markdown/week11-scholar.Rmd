@@ -1,0 +1,56 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r Libraries}
+library(tidyverse)
+library(httr)
+library(rvest)
+```
+Load necessary libraries.
+
+```{r Data Import and Cleaning}
+# Input the url from which I will be scraping data (Stuart Carr's Google 
+# Scholar profile)
+schol_html <- read_html("https://scholar.google.com/citations?user=gVWAWM0AAAAJ&hl=en&oi=ao")
+
+# Use a function from the rvest package to pull nodes from the previously 
+# specified URL that matches a given CSS selector
+# The CSS selector identifies the title, author, year, and citation count
+# of the first 20 articles on the profile identified above
+schol_nodes <- html_nodes(schol_html, css = "#gsc_a_b .gs_ibl , .gsc_a_at+ .gs_gray , .gsc_a_at")
+
+# Extract the text from the nodes
+node_text <- html_text(schol_nodes)
+
+# From the full text, separate the title, author, year, and citation count
+title <- node_text[seq(1, length(node_text), 4)]
+author <- node_text[seq(2, length(node_text), 4)]
+cite <- as.numeric(node_text[seq(3, length(node_text), 4)])
+year <- as.numeric(node_text[seq(4, length(node_text), 4)])
+
+# Bind the title, author, year, and citation count vectors into a tibble
+profile_tbl <- bind_cols(title = title, authors = author, year = year, citations = cite)
+```
+
+
+```{r Analysis}
+profile.cor <- cor.test(profile_tbl$year, profile_tbl$citations)
+profile.cor
+```
+The correlation between when an article (from this specific set of articles) was published and its citation count is `r profile.cor$estimate`.  
+
+```{r Visualization}
+ggplot(profile_tbl, aes(x = year, y = citations)) +
+           geom_point() +
+    geom_smooth(method = "lm") +
+    ggtitle("Relationship Between Year of Publication and Citation Count") +
+    xlab("Year of Publication") + 
+    ylab("Citation Count")
+```
+This plot shows the relationship between year of publication and citation count, along with the least squares regression line between them. 

@@ -1,0 +1,59 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r Libraries}
+library(twitteR)
+library(tidyverse)
+```
+Load necessary libraries.
+
+
+```{r Data Import and Cleaning}
+# Obtain access to the Twitter API using appropriate authentication
+api <- '7DPTSeLp9wqmBaoayNYpPJvLp'
+apiSecret <- 'ftzB0U2ulWaYs32tNHn9lERkhbVUtbuAiP6o8Lec5XV7lNU7GM'
+access <- '1012248144-7qLC5cfX6BVKS1a4lpnIHRndLSPOxiUA62RnEOw'
+accessSecret <- 'Qbh5TneWdrQhEkmlDvzOGFKmHzkZVm1KcDzb0kOK13eBP'
+setup_twitter_oauth(api, apiSecret, access, accessSecret) 
+
+# Query Twitter API using a function from the twitteR library to obtain a table 
+#with the 1000 most recent tweets with the hashtag 'rstats' and relevant 
+#information about the tweets
+tweets <- searchTwitter("#rstats", 1000)
+# Remove retweets
+tweets_clean <- strip_retweets(tweets)
+# Build a tibble with the name of the tweeter, the content of the tweet, and 
+#the number of both favorites and retweets
+tweets_tbl <- twListToDF(tweets_clean) %>%
+    select(screenName, text, favoriteCount, retweetCount)
+```
+
+
+```{r Analysis}
+rt.cor <- cor.test(nchar(tweets_tbl$text), tweets_tbl$retweetCount)
+rt.cor
+fav.cor <- cor.test(nchar(tweets_tbl$text), tweets_tbl$favoriteCount)
+fav.cor
+```
+Examine the relationship between length of tweet and both number of retweets and number of favorites. The correlation for length of tweet with number of retweets is `r rt.cor$estimate`, and the correlation for length of tweet with number of favorites is `r fav.cor$estimate`.
+
+
+```{r Visualization}
+ggplot(tweets_tbl, aes(x = nchar(text), y = retweetCount)) +
+           geom_point() +
+    ggtitle("Relationship Between Tweet Length and Retweets") +
+    xlab("Length of Tweet") + 
+    ylab("Number of Retweets")
+ggplot(tweets_tbl, aes(x = nchar(text), y = favoriteCount)) +
+           geom_point() + 
+    ggtitle("Relationship Between Tweet Length and Favorites") +
+    xlab("Length of Tweet") + 
+    ylab("Number of Favorites")
+```
+These plots show the relationship between length of tweet and both number of retweets and number of favorites in the form of a scatterplot. 
